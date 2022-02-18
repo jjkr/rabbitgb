@@ -1,11 +1,19 @@
-#include <iostream>
-#include <SDL.h>
 #include "cart.hpp"
+#include <SDL.h>
+#include <iostream>
+#include <fstream>
+#include <vector>
 
 #define SCREEN_WIDTH 640
 #define SCREEN_HEIGHT 480
 
-int main(int, char**) {
+using rabbit::Cart;
+using std::cout;
+using std::endl;
+using std::ifstream;
+using std::vector;
+
+int runSDL() {
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
         fprintf(stderr, "could not initialize sdl2: %s\n", SDL_GetError());
         return 1;
@@ -24,21 +32,39 @@ int main(int, char**) {
     bool quit = false;
     while (!quit) {
         while (SDL_PollEvent(&e)) {
-            if (e.type == SDL_QUIT) {
+            switch (e.type) {
+                case SDL_QUIT:
+                case SDL_KEYDOWN:
+                case SDL_MOUSEBUTTONDOWN:
                 quit = true;
-            }
-            if (e.type == SDL_KEYDOWN) {
-                quit = true;
-            }
-            if (e.type == SDL_MOUSEBUTTONDOWN) {
-                quit = true;
+                default:
+                ;
             }
         }
     }
     SDL_DestroyWindow(window);
     SDL_Quit();
 
-    std::cout << "Exiting\n";
+    return 0;
+}
+
+int main(int, char**) {
+    ifstream romStream("../../carts/SuperMarioLand.gb", std::ios::binary | std::ios::ate);
+    auto romEnd = romStream.tellg();
+    romStream.seekg(0, std::ios::beg);
+    auto romSize = romEnd - romStream.tellg();
+    if (romSize == 0) {
+        cout << "ROM file is empty" << endl;
+        return 1;
+    }
+    vector<uint8_t> cartData(romSize);
+    if (!romStream.read(reinterpret_cast<char*>(cartData.data()), romSize)) {
+        cout << "Failed to read cart data" << endl;
+        return 1;
+    }
+    Cart cart(cartData);
+    cout << cart.cartInfo() << endl;
 
     return 0;
+    //return runSDL();
 }
